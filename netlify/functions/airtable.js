@@ -2,7 +2,7 @@ exports.handler = async (event) => {
   const { from, to } = event.queryStringParameters;
   const BASE_ID = 'appiyfCJkXwnihoEM';
   const TABLE_ID = 'tblMy7iSLVw7799x4';
-  const TOKEN = 'patg3PyOEJXA1jiVi';
+  const TOKEN = 'patDJSXmnXhrL3Nmn.f00c23fa5a57de009c41eeb81a7c04960dda2897f0cb1bca891bbd7f5e17a4b2';
 
   const formula = encodeURIComponent(`AND({Data}>="${from}",{Data}<="${to}")`);
   const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?filterByFormula=${formula}&sort[0][field]=Data&sort[0][direction]=asc`;
