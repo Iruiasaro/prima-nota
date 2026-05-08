@@ -144,7 +144,7 @@ async function gen(){
     if(!recs.length){sm('E','Nessun movimento nel periodo.');btn.disabled=false;btn.textContent='\uD83D\uDCC4 Genera e Scarica PDF';return;}
     rend(recs);
     var tD=0,tA=0,tI=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tI+=r.iva;});var s=tA-tD;
-    var cl=document.getElementById('nc').value.trim()||'Cliente';
+    var cl='Urzetti Consulting';
     var per=f===to?'Giorno '+f:'Dal '+f+' al '+to;
     var righe=recs.map(function(r){return{fields:{'Data':r.data,'Descrizione':r.desc,'Tipo':r.tipo,'DARE':r.dare?ef(r.dare):'','AVERE':r.avere?ef(r.avere):'','IVA':r.iva?ef(r.iva):''}};});
     var pl={document:{document_template_id:C.tp,status:'pending',payload:{cliente:cl,periodo:per,data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_avere:ef(tA),totale_iva:ef(tI),saldo:(s>=0?'+':'')+ef(s)+'\u20AC'}}};
