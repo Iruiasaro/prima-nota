@@ -88,14 +88,28 @@ var ef=function(v){return v===0?'':v.toLocaleString('it-IT',{minimumFractionDigi
 var fmt=function(d){return d.toISOString().split('T')[0];};
 function sp(p,btn){
   document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
-  var t=new Date(),f,to;
-  if(p==='today'){f=to=fmt(t);}
-  else if(p==='week'){var m=new Date(t);m.setDate(t.getDate()-((t.getDay()+6)%7));f=fmt(m);to=fmt(t);}
- else if(p==='month'){var y=t.getFullYear(),mo=t.getMonth();f=y+'-'+(mo+1<10?'0'+(mo+1):(mo+1))+'-01';to=fmt(t);}
-  else if(p==='lastmonth'){f=fmt(new Date(t.getFullYear(),t.getMonth()-1,1));to=fmt(new Date(t.getFullYear(),t.getMonth(),0));}
-  else if(p==='year'){f=fmt(new Date(t.getFullYear(),0,1));to=fmt(t);}
+  var t=new Date(),y=t.getFullYear(),m=t.getMonth()+1,d=t.getDate();
+  var pad=function(n){return n<10?'0'+n:String(n);};
+  var f,to;
+  to=y+'-'+pad(m)+'-'+pad(d);
+  if(p==='today'){f=to;}
+  else if(p==='week'){
+    var wd=t.getDay()===0?6:t.getDay()-1;
+    var mon=new Date(t);mon.setDate(d-wd);
+    f=mon.getFullYear()+'-'+pad(mon.getMonth()+1)+'-'+pad(mon.getDate());
+  }
+  else if(p==='month'){f=y+'-'+pad(m)+'-01';}
+  else if(p==='lastmonth'){
+    var lm=m===1?12:m-1;
+    var ly=m===1?y-1:y;
+    var lastDay=new Date(y,m-1,0).getDate();
+    f=ly+'-'+pad(lm)+'-01';
+    to=ly+'-'+pad(lm)+'-'+pad(lastDay);
+  }
+  else if(p==='year'){f=y+'-01-01';}
   else return;
-  document.getElementById('df').value=f;document.getElementById('dt').value=to;
+  document.getElementById('df').value=f;
+  document.getElementById('dt').value=to;
 }
 async function fr(f,to){
   var r=await fetch('/.netlify/functions/airtable?from='+f+'&to='+to);
