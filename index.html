@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1f33;padding:20px;color:#e8f0f7}
 .card{background:#1e3a5f;border-radius:12px;padding:28px;max-width:760px;margin:0 auto;border:0.5px solid #2d5986}
@@ -40,3 +45,127 @@ tbody tr:hover td{background:#2d5986}
 .sp{display:inline-block;width:13px;height:13px;border:2px solid #ffffff50;border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .em{text-align:center;padding:26px;color:#4a7fa5}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>&#128203; Genera Prima Nota</h2>
+  <p class="sub">Seleziona il periodo e scarica il PDF &mdash; Urzetti Consulting</p>
+  <div class="pbs">
+    <button class="pb" onclick="sp('today',this)">Oggi</button>
+    <button class="pb" onclick="sp('week',this)">Questa settimana</button>
+    <button class="pb" onclick="sp('month',this)">Questo mese</button>
+    <button class="pb" onclick="sp('lastmonth',this)">Mese scorso</button>
+    <button class="pb" onclick="sp('year',this)">Quest'anno</button>
+    <button class="pb" onclick="sp('x',this)">Personalizzato</button>
+  </div>
+
+  <div class="dr">
+    <div><label>Data inizio</label><input type="date" id="df"></div>
+    <div><label>Data fine</label><input type="date" id="dt"></div>
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="sv" id="s1">-</div><div class="sl">Movimenti</div></div>
+    <div class="stat"><div class="sv red" id="s2">-</div><div class="sl">Totale Dare</div></div>
+    <div class="stat"><div class="sv green" id="s3">-</div><div class="sl">Totale Avere</div></div>
+    <div class="stat"><div class="sv blue" id="s4">-</div><div class="sl">Totale IVA</div></div>
+    <div class="stat"><div class="sv" id="s5">-</div><div class="sl">Saldo</div></div>
+  </div>
+
+  <div class="preview" id="prev">
+    <div class="ptitle">Anteprima movimenti</div>
+    <div class="tw" id="tw"></div>
+  </div>
+
+  <button class="b1" onclick="ant()">&#128269; Carica anteprima</button>
+  <button class="b2" id="bg" onclick="gen()">&#128196; Genera e Scarica PDF</button>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+var C={at:'patg3PyOEJXA1jiVi',bi:'appiyfCJkXwnihoEM',ti:'tblMy7iSLVw7799x4',pk:'PWpTAPVUFyyRzhz4emsP',tp:'e9574598-e7cc-4e11-88f8-bac934398b22'};
+var ef=function(v){return v===0?'':v.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});};
+var fmt=function(d){return d.toISOString().split('T')[0];};
+function sp(p,btn){
+  document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
+  var t=new Date(),f,to;
+  if(p==='today'){f=to=fmt(t);}
+  else if(p==='week'){var m=new Date(t);m.setDate(t.getDate()-((t.getDay()+6)%7));f=fmt(m);to=fmt(t);}
+  else if(p==='month'){f=fmt(new Date(t.getFullYear(),t.getMonth(),1));to=fmt(t);}
+  else if(p==='lastmonth'){f=fmt(new Date(t.getFullYear(),t.getMonth()-1,1));to=fmt(new Date(t.getFullYear(),t.getMonth(),0));}
+  else if(p==='year'){f=fmt(new Date(t.getFullYear(),0,1));to=fmt(t);}
+  else return;
+  document.getElementById('df').value=f;document.getElementById('dt').value=to;
+}
+async function fr(f,to){
+  var r=await fetch('/.netlify/functions/airtable?from='+f+'&to='+to);
+  if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||('Errore '+r.status));}
+  var all=await r.json();
+  return all.map(function(r){return{data:r.fields['Data']||'',desc:r.fields['Descrizione']||'',tipo:r.fields['Tipo']||'',dare:parseFloat(r.fields['DARE']||0),avere:parseFloat(r.fields['AVERE']||0),iva:parseFloat(r.fields['IVA']||0)};});
+}
+function bc(t){return t==='Acquisto'?'bA':t==='Vendita'?'bV':'bC';}
+function rend(recs){
+  var pv=document.getElementById('prev'),st=document.getElementById('stats');
+  if(!recs.length){pv.classList.add('show');document.getElementById('tw').innerHTML='<div class="em">Nessun movimento nel periodo.</div>';st.style.display='none';return;}
+  var tD=0,tA=0,tI=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tI+=r.iva;});var s=tA-tD;
+  st.style.display='flex';
+  document.getElementById('s1').textContent=recs.length;
+  document.getElementById('s2').textContent='\u20AC '+ef(tD);
+  document.getElementById('s3').textContent='\u20AC '+ef(tA);
+  document.getElementById('s4').textContent='\u20AC '+ef(tI);
+  var se=document.getElementById('s5');se.textContent=(s>=0?'+':'')+'\u20AC '+ef(s);se.className='sv '+(s>=0?'green':'red');
+  var bd={};recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
+  var h='<table><thead><tr><th>Data</th><th>Descrizione</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA</th></tr></thead><tbody>';
+  Object.keys(bd).sort().forEach(function(dt){
+    var rows=bd[dt],dD=0,dA=0,dI=0;rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dI+=r.iva;});
+    h+='<tr class="dgr"><td colspan="6">\uD83D\uDCC5 '+dt+'</td></tr>';
+    rows.forEach(function(r){h+='<tr><td>'+r.data+'</td><td>'+r.desc+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td class="num">'+(r.dare?ef(r.dare):'')+'</td><td class="num">'+(r.avere?ef(r.avere):'')+'</td><td class="num">'+(r.iva?ef(r.iva):'')+'</td></tr>';});
+    h+='<tr class="str"><td colspan="3" style="text-align:right;padding-right:8px">Subtotale '+dt+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dI?ef(dI):'')+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr class="ttr"><td colspan="3">TOTALI PERIODO</td><td class="num">'+ef(tD)+'</td><td class="num">'+ef(tA)+'</td><td class="num">'+ef(tI)+'</td></tr></tfoot></table>';
+  pv.classList.add('show');document.getElementById('tw').innerHTML=h;
+}
+async function ant(){
+  var f=document.getElementById('df').value,to=document.getElementById('dt').value;
+  if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
+  sm('L','<span class="sp"></span> Caricamento da Airtable...');
+  try{var r=await fr(f,to);hm();rend(r);}catch(e){sm('E','Errore: '+e.message);}
+}
+async function gen(){
+  var f=document.getElementById('df').value,to=document.getElementById('dt').value;
+  if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
+  var btn=document.getElementById('bg');btn.disabled=true;btn.textContent='Generazione in corso...';
+  sm('L','<span class="sp"></span> Recupero dati...');
+  try{
+    var recs=await fr(f,to);
+    if(!recs.length){sm('E','Nessun movimento nel periodo.');btn.disabled=false;btn.textContent='\uD83D\uDCC4 Genera e Scarica PDF';return;}
+    rend(recs);
+    var tD=0,tA=0,tI=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tI+=r.iva;});var s=tA-tD;
+    var cl='Urzetti Consulting';
+    var per=f===to?'Giorno '+f:'Dal '+f+' al '+to;
+    var righe=recs.map(function(r){return{fields:{'Data':r.data,'Descrizione':r.desc,'Tipo':r.tipo,'DARE':r.dare?ef(r.dare):'','AVERE':r.avere?ef(r.avere):'','IVA':r.iva?ef(r.iva):''}};});
+    var pl={document:{document_template_id:C.tp,status:'pending',payload:{cliente:cl,periodo:per,data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_avere:ef(tA),totale_iva:ef(tI),saldo:(s>=0?'+':'')+ef(s)+'\u20AC'}}};
+    sm('L','<span class="sp"></span> Invio a PDFMonkey...');
+    var cr=await fetch('https://api.pdfmonkey.io/api/v1/documents',{method:'POST',headers:{Authorization:'Bearer '+C.pk,'Content-Type':'application/json'},body:JSON.stringify(pl)});
+    if(!cr.ok){var er=await cr.json().catch(function(){return{};});throw new Error((er.errors&&er.errors[0]&&er.errors[0].detail)||('PDFMonkey errore '+cr.status));}
+    var cd=await cr.json(),id=cd.document.id,url=null;
+    for(var i=0;i<30;i++){
+      await new Promise(function(r){setTimeout(r,1000);});
+      var pr=await fetch('https://api.pdfmonkey.io/api/v1/documents/'+id,{headers:{Authorization:'Bearer '+C.pk}});
+      var pd=await pr.json(),st=pd.document.status;
+      if(st==='success'){url=pd.document.download_url;break;}
+      if(st==='error')throw new Error('PDFMonkey ha segnalato un errore.');
+      sm('L','<span class="sp"></span> Generazione PDF... ('+(i+1)+'s)');
+    }
+    if(!url)throw new Error('Timeout generazione PDF. Riprova.');
+    var a=document.createElement('a');a.href=url;a.download='prima_nota_'+f+'_'+to+'.pdf';a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);
+    sm('S','\u2705 PDF generato! Download avviato.');
+  }catch(e){sm('E','Errore: '+e.message);}
+  finally{btn.disabled=false;btn.innerHTML='\uD83D\uDCC4 Genera e Scarica PDF';}
+}
+function sm(t,m){var e=document.getElementById('msg');e.className='msg '+t;e.innerHTML=m;}
+function hm(){document.getElementById('msg').className='msg';}
+(function(){var t=new Date();document.getElementById('df').value=fmt(new Date(t.getFullYear(),t.getMonth(),1));document.getElementById('dt').value=fmt(t);})();
+</script>
+</body>
+</html>
