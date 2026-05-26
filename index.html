@@ -116,7 +116,8 @@ var mon=new Date(now);mon.setDate(d-wd);
   document.getElementById('dt').value=to;
 }
 async function fr(f,to){
-  var r=await fetch('/.netlify/functions/airtable?from='+f+'&to='+to);
+  async function fr(f,to){
+  var r=await fetch('https://prima-nota-api.iruiasan123.workers.dev/?from='+f+'&to='+to);
   if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||('Errore '+r.status));}
   var all=await r.json();
   return all.map(function(r){return{data:r.fields['Data']||'',desc:r.fields['Descrizione']||'',tipo:r.fields['Tipo']||'',dare:parseFloat(r.fields['DARE']||0),avere:parseFloat(r.fields['AVERE']||0),iva:parseFloat(r.fields['IVA']||0)};});
