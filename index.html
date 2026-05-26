@@ -91,7 +91,7 @@ function sp(p,btn){
   var t=new Date(),f,to;
   if(p==='today'){f=to=fmt(t);}
   else if(p==='week'){var m=new Date(t);m.setDate(t.getDate()-((t.getDay()+6)%7));f=fmt(m);to=fmt(t);}
-  else if(p==='month'){f=fmt(new Date(t.getFullYear(),t.getMonth(),1));to=fmt(t);}
+ else if(p==='month'){var y=t.getFullYear(),mo=t.getMonth();f=y+'-'+(mo+1<10?'0'+(mo+1):(mo+1))+'-01';to=fmt(t);}
   else if(p==='lastmonth'){f=fmt(new Date(t.getFullYear(),t.getMonth()-1,1));to=fmt(new Date(t.getFullYear(),t.getMonth(),0));}
   else if(p==='year'){f=fmt(new Date(t.getFullYear(),0,1));to=fmt(t);}
   else return;
