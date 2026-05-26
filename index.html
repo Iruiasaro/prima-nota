@@ -145,12 +145,14 @@ function rend(recs){
 }
 async function ant(){
   var f=document.getElementById('df').value,to=document.getElementById('dt').value;
+    console.log('from:',f,'to:',to);
   if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
   sm('L','<span class="sp"></span> Caricamento da Airtable...');
   try{var r=await fr(f,to);hm();rend(r);}catch(e){sm('E','Errore: '+e.message);}
 }
 async function gen(){
   var f=document.getElementById('df').value,to=document.getElementById('dt').value;
+    console.log('from:',f,'to:',to);
   if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
   var btn=document.getElementById('bg');btn.disabled=true;btn.textContent='Generazione in corso...';
   sm('L','<span class="sp"></span> Recupero dati...');
