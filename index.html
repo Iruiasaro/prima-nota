@@ -88,7 +88,11 @@ var ef=function(v){return v===0?'':v.toLocaleString('it-IT',{minimumFractionDigi
 var fmt=function(d){return d.toISOString().split('T')[0];};
 function sp(p,btn){
   document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
-  var t=new Date(),y=t.getFullYear(),m=t.getMonth()+1,d=t.getDate();
+  var now=new Date();
+var y=now.getFullYear(),m=now.getMonth()+1,d=now.getDate();
+// fix fuso orario
+var offset=now.getTimezoneOffset();
+if(offset<0){var fixed=new Date(now.getTime()-offset*60000);y=fixed.getFullYear();m=fixed.getMonth()+1;d=fixed.getDate();}
   var pad=function(n){return n<10?'0'+n:String(n);};
   var f,to;
   to=y+'-'+pad(m)+'-'+pad(d);
@@ -106,7 +110,7 @@ function sp(p,btn){
     f=ly+'-'+pad(lm)+'-01';
     to=ly+'-'+pad(lm)+'-'+pad(lastDay);
   }
-  else if(p==='year'){f=y+'-01-01';}
+ else if(p==='year'){f=(y)+'-01-01';}
   else return;
   document.getElementById('df').value=f;
   document.getElementById('dt').value=to;
