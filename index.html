@@ -98,8 +98,8 @@ if(offset<0){var fixed=new Date(now.getTime()-offset*60000);y=fixed.getFullYear(
   to=y+'-'+pad(m)+'-'+pad(d);
   if(p==='today'){f=to;}
   else if(p==='week'){
-    var wd=t.getDay()===0?6:t.getDay()-1;
-    var mon=new Date(t);mon.setDate(d-wd);
+var wd=now.getDay()===0?6:now.getDay()-1;
+var mon=new Date(now);mon.setDate(d-wd);
     f=mon.getFullYear()+'-'+pad(mon.getMonth()+1)+'-'+pad(mon.getDate());
   }
   else if(p==='month'){f=y+'-'+pad(m)+'-01';}
