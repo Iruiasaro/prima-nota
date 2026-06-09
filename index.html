@@ -155,12 +155,22 @@ function rendSemplice(recs, bd) {
 }
 
 function rendCompleta(recs, bd) {
-  // Vista completa: tutte le righe con descrizione
-  var h='<table><thead><tr><th>Data</th><th>Descrizione</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA</th></tr></thead><tbody>';
+  var h='<table><thead><tr><th>Data</th><th>Tipo</th><th>Aliquota</th><th style="text-align:right">Dare</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA</th></tr></thead><tbody>';
   Object.keys(bd).sort().forEach(function(dt){
-    var rows=bd[dt],dD=0,dA=0,dI=0;rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dI+=r.iva;});
+    var rows=bd[dt],dD=0,dA=0,dI=0;
+    rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dI+=r.iva;});
     h+='<tr class="dgr"><td colspan="6">\uD83D\uDCC5 '+fmtData(dt)+'</td></tr>';
-    rows.forEach(function(r){h+='<tr><td>'+fmtData(r.data)+'</td><td>'+r.desc+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td class="num">'+(r.dare?ef(r.dare):'')+'</td><td class="num">'+(r.avere?ef(r.avere):'')+'</td><td class="num">'+(r.iva?ef(r.iva):'')+'</td></tr>';});
+    rows.forEach(function(r){
+      if(r.righe && r.righe.length > 0){
+        r.righe.forEach(function(riga){
+          var dare = r.isDare ? riga.imponibile : 0;
+          var avere = r.isDare ? 0 : riga.imponibile;
+          h+='<tr><td>'+fmtData(r.data)+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td style="color:#94afc8;font-size:.75rem;">'+riga.aliquota+'</td><td class="num">'+(dare?ef(dare):'')+'</td><td class="num">'+(avere?ef(avere):'')+'</td><td class="num">'+(riga.iva?ef(riga.iva):'')+'</td></tr>';
+        });
+      } else {
+        h+='<tr><td>'+fmtData(r.data)+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td>-</td><td class="num">'+(r.dare?ef(r.dare):'')+'</td><td class="num">'+(r.avere?ef(r.avere):'')+'</td><td class="num">'+(r.iva?ef(r.iva):'')+'</td></tr>';
+      }
+    });
     h+='<tr class="str"><td colspan="3" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dI?ef(dI):'')+'</td></tr>';
   });
   return h;
