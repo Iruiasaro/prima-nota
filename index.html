@@ -23,6 +23,9 @@ input:focus{border-color:#4a7fa5}
 .preview{display:none;margin-bottom:14px}
 .preview.show{display:block}
 .ptitle{font-size:.75rem;font-weight:600;color:#94afc8;text-transform:uppercase;margin-bottom:8px}
+.view-toggle{display:flex;gap:8px;margin-bottom:12px}
+.vt{padding:6px 14px;border:1px solid #2d5986;background:#0d1f33;border-radius:7px;cursor:pointer;font-size:.78rem;font-weight:500;color:#94afc8}
+.vt.active{background:#2d5986;color:#e8f0f7;border-color:#4a7fa5}
 .tw{overflow-x:auto;border-radius:8px;border:1px solid #2d5986}
 table{width:100%;border-collapse:collapse;font-size:.8rem}
 thead th{background:#0d1f33;color:#94afc8;padding:8px 10px;text-align:left;font-size:.72rem;white-space:nowrap;border-bottom:1px solid #2d5986}
@@ -45,6 +48,7 @@ tbody tr:hover td{background:#2d5986}
 .sp{display:inline-block;width:13px;height:13px;border:2px solid #ffffff50;border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .em{text-align:center;padding:26px;color:#4a7fa5}
+.section-header td{background:#0a1929;color:#6b8fa8;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.8px;padding:8px 10px;border-top:2px solid #2d5986}
 </style>
 </head>
 <body>
@@ -59,12 +63,10 @@ tbody tr:hover td{background:#2d5986}
     <button class="pb" onclick="sp('year',this)">Quest'anno</button>
     <button class="pb" onclick="sp('x',this)">Personalizzato</button>
   </div>
-
   <div class="dr">
     <div><label>Data inizio</label><input type="date" id="df"></div>
     <div><label>Data fine</label><input type="date" id="dt"></div>
   </div>
-
   <div class="stats" id="stats" style="display:none">
     <div class="stat"><div class="sv" id="s1">-</div><div class="sl">Movimenti</div></div>
     <div class="stat"><div class="sv red" id="s2">-</div><div class="sl">Totale Dare</div></div>
@@ -72,12 +74,16 @@ tbody tr:hover td{background:#2d5986}
     <div class="stat"><div class="sv blue" id="s4">-</div><div class="sl">Totale IVA</div></div>
     <div class="stat"><div class="sv" id="s5">-</div><div class="sl">Saldo</div></div>
   </div>
-
   <div class="preview" id="prev">
-    <div class="ptitle">Anteprima movimenti</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="ptitle">Anteprima movimenti</div>
+      <div class="view-toggle">
+        <button class="vt active" id="vt-semplice" onclick="setView('semplice',this)">Semplificata</button>
+        <button class="vt" id="vt-completa" onclick="setView('completa',this)">Completa</button>
+      </div>
+    </div>
     <div class="tw" id="tw"></div>
   </div>
-
   <button class="b1" onclick="ant()">&#128269; Carica anteprima</button>
   <button class="b2" id="bg" onclick="gen()">&#128196; Genera e Scarica PDF</button>
   <div class="msg" id="msg"></div>
@@ -86,43 +92,82 @@ tbody tr:hover td{background:#2d5986}
 var C={at:'patg3PyOEJXA1jiVi',bi:'appiyfCJkXwnihoEM',ti:'tblMy7iSLVw7799x4',pk:'PWpTAPVUFyyRzhz4emsP',tp:'e9574598-e7cc-4e11-88f8-bac934398b22'};
 var ef=function(v){return v===0?'':v.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});};
 var fmt=function(d){return d.toISOString().split('T')[0];};
+var fmtData=function(d){if(!d)return'';var p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d;};
+var vistaAttuale='semplice';
+var ultimiRecs=[];
+
+function setView(v, btn) {
+  vistaAttuale=v;
+  document.querySelectorAll('.vt').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  if(ultimiRecs.length) rend(ultimiRecs);
+}
+
 function sp(p,btn){
   document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
   var now=new Date();
-var y=now.getFullYear(),m=now.getMonth()+1,d=now.getDate();
-// fix fuso orario
-var offset=now.getTimezoneOffset();
-if(offset<0){var fixed=new Date(now.getTime()-offset*60000);y=fixed.getFullYear();m=fixed.getMonth()+1;d=fixed.getDate();}
+  var y=now.getFullYear(),m=now.getMonth()+1,d=now.getDate();
+  var offset=now.getTimezoneOffset();
+  if(offset<0){var fixed=new Date(now.getTime()-offset*60000);y=fixed.getFullYear();m=fixed.getMonth()+1;d=fixed.getDate();}
   var pad=function(n){return n<10?'0'+n:String(n);};
   var f,to;
   to=y+'-'+pad(m)+'-'+pad(d);
   if(p==='today'){f=to;}
-  else if(p==='week'){
-var wd=now.getDay()===0?6:now.getDay()-1;
-var mon=new Date(now);mon.setDate(d-wd);
-    f=mon.getFullYear()+'-'+pad(mon.getMonth()+1)+'-'+pad(mon.getDate());
-  }
+  else if(p==='week'){var wd=now.getDay()===0?6:now.getDay()-1;var mon=new Date(now);mon.setDate(d-wd);f=mon.getFullYear()+'-'+pad(mon.getMonth()+1)+'-'+pad(mon.getDate());}
   else if(p==='month'){f=y+'-'+pad(m)+'-01';}
-  else if(p==='lastmonth'){
-    var lm=m===1?12:m-1;
-    var ly=m===1?y-1:y;
-    var lastDay=new Date(y,m-1,0).getDate();
-    f=ly+'-'+pad(lm)+'-01';
-    to=ly+'-'+pad(lm)+'-'+pad(lastDay);
-  }
- else if(p==='year'){f=(y)+'-01-01';}
+  else if(p==='lastmonth'){var lm=m===1?12:m-1;var ly=m===1?y-1:y;var lastDay=new Date(y,m-1,0).getDate();f=ly+'-'+pad(lm)+'-01';to=ly+'-'+pad(lm)+'-'+pad(lastDay);}
+  else if(p==='year'){f=y+'-01-01';}
   else return;
   document.getElementById('df').value=f;
   document.getElementById('dt').value=to;
 }
+
 async function fr(f,to){
   var r=await fetch('https://prima-nota-api.iruiasan123.workers.dev/?from='+f+'&to='+to);
   if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||('Errore '+r.status));}
   var all=await r.json();
   return all.map(function(r){return{data:r.fields['Data']||'',desc:r.fields['Descrizione']||'',tipo:r.fields['Tipo']||'',dare:parseFloat(r.fields['DARE']||0),avere:parseFloat(r.fields['AVERE']||0),iva:parseFloat(r.fields['IVA']||0)};});
 }
+
 function bc(t){return t==='Acquisto'?'bA':t==='Vendita'?'bV':'bC';}
+
+function rendSemplice(recs, bd) {
+  // Vista semplificata: per ogni giorno, una riga per tipo con totali
+  var h='<table><thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA</th></tr></thead><tbody>';
+  Object.keys(bd).sort().forEach(function(dt){
+    var rows=bd[dt];
+    var byTipo={};
+    rows.forEach(function(r){
+      if(!byTipo[r.tipo]) byTipo[r.tipo]={dare:0,avere:0,iva:0};
+      byTipo[r.tipo].dare+=r.dare;
+      byTipo[r.tipo].avere+=r.avere;
+      byTipo[r.tipo].iva+=r.iva;
+    });
+    var dD=0,dA=0,dI=0;rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dI+=r.iva;});
+    h+='<tr class="dgr"><td colspan="5">\uD83D\uDCC5 '+fmtData(dt)+'</td></tr>';
+    Object.keys(byTipo).forEach(function(tipo){
+      var t=byTipo[tipo];
+      h+='<tr><td>'+fmtData(dt)+'</td><td><span class="badge '+bc(tipo)+'">'+tipo+'</span></td><td class="num">'+(t.dare?ef(t.dare):'')+'</td><td class="num">'+(t.avere?ef(t.avere):'')+'</td><td class="num">'+(t.iva?ef(t.iva):'')+'</td></tr>';
+    });
+    h+='<tr class="str"><td colspan="2" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dI?ef(dI):'')+'</td></tr>';
+  });
+  return h;
+}
+
+function rendCompleta(recs, bd) {
+  // Vista completa: tutte le righe con descrizione
+  var h='<table><thead><tr><th>Data</th><th>Descrizione</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA</th></tr></thead><tbody>';
+  Object.keys(bd).sort().forEach(function(dt){
+    var rows=bd[dt],dD=0,dA=0,dI=0;rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dI+=r.iva;});
+    h+='<tr class="dgr"><td colspan="6">\uD83D\uDCC5 '+fmtData(dt)+'</td></tr>';
+    rows.forEach(function(r){h+='<tr><td>'+fmtData(r.data)+'</td><td>'+r.desc+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td class="num">'+(r.dare?ef(r.dare):'')+'</td><td class="num">'+(r.avere?ef(r.avere):'')+'</td><td class="num">'+(r.iva?ef(r.iva):'')+'</td></tr>';});
+    h+='<tr class="str"><td colspan="3" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dI?ef(dI):'')+'</td></tr>';
+  });
+  return h;
+}
+
 function rend(recs){
+  ultimiRecs=recs;
   var pv=document.getElementById('prev'),st=document.getElementById('stats');
   if(!recs.length){pv.classList.add('show');document.getElementById('tw').innerHTML='<div class="em">Nessun movimento nel periodo.</div>';st.style.display='none';return;}
   var tD=0,tA=0,tI=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tI+=r.iva;});var s=tA-tD;
@@ -133,22 +178,18 @@ function rend(recs){
   document.getElementById('s4').textContent='\u20AC '+ef(tI);
   var se=document.getElementById('s5');se.textContent=(s>=0?'+':'')+'\u20AC '+ef(s);se.className='sv '+(s>=0?'green':'red');
   var bd={};recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
-  var h='<table><thead><tr><th>Data</th><th>Descrizione</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA</th></tr></thead><tbody>';
-  Object.keys(bd).sort().forEach(function(dt){
-    var rows=bd[dt],dD=0,dA=0,dI=0;rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dI+=r.iva;});
-    h+='<tr class="dgr"><td colspan="6">\uD83D\uDCC5 '+dt+'</td></tr>';
-    rows.forEach(function(r){h+='<tr><td>'+r.data+'</td><td>'+r.desc+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td class="num">'+(r.dare?ef(r.dare):'')+'</td><td class="num">'+(r.avere?ef(r.avere):'')+'</td><td class="num">'+(r.iva?ef(r.iva):'')+'</td></tr>';});
-    h+='<tr class="str"><td colspan="3" style="text-align:right;padding-right:8px">Subtotale '+dt+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dI?ef(dI):'')+'</td></tr>';
-  });
-  h+='</tbody><tfoot><tr class="ttr"><td colspan="3">TOTALI PERIODO</td><td class="num">'+ef(tD)+'</td><td class="num">'+ef(tA)+'</td><td class="num">'+ef(tI)+'</td></tr></tfoot></table>';
+  var h = vistaAttuale==='semplice' ? rendSemplice(recs,bd) : rendCompleta(recs,bd);
+  h+='</tbody><tfoot><tr class="ttr"><td colspan="'+(vistaAttuale==='semplice'?'2':'3')+'">TOTALI PERIODO</td><td class="num">'+ef(tD)+'</td><td class="num">'+ef(tA)+'</td><td class="num">'+ef(tI)+'</td></tr></tfoot></table>';
   pv.classList.add('show');document.getElementById('tw').innerHTML=h;
 }
+
 async function ant(){
   var f=document.getElementById('df').value,to=document.getElementById('dt').value;
   if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
   sm('L','<span class="sp"></span> Caricamento da Airtable...');
   try{var r=await fr(f,to);hm();rend(r);}catch(e){sm('E','Errore: '+e.message);}
 }
+
 async function gen(){
   var f=document.getElementById('df').value,to=document.getElementById('dt').value;
   if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
@@ -160,8 +201,8 @@ async function gen(){
     rend(recs);
     var tD=0,tA=0,tI=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tI+=r.iva;});var s=tA-tD;
     var cl='Urzetti Consulting';
-    var per=f===to?'Giorno '+f:'Dal '+f+' al '+to;
-    var righe=recs.map(function(r){return{fields:{'Data':r.data,'Descrizione':r.desc,'Tipo':r.tipo,'DARE':r.dare?ef(r.dare):'','AVERE':r.avere?ef(r.avere):'','IVA':r.iva?ef(r.iva):''}};});
+    var per=f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to);
+    var righe=recs.map(function(r){return{fields:{'Data':fmtData(r.data),'Descrizione':r.desc,'Tipo':r.tipo,'DARE':r.dare?ef(r.dare):'','AVERE':r.avere?ef(r.avere):'','IVA':r.iva?ef(r.iva):''}};});
     var pl={document:{document_template_id:C.tp,status:'pending',payload:{cliente:cl,periodo:per,data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_avere:ef(tA),totale_iva:ef(tI),saldo:(s>=0?'+':'')+ef(s)+'\u20AC'}}};
     sm('L','<span class="sp"></span> Invio a PDFMonkey...');
     var cr=await fetch('https://api.pdfmonkey.io/api/v1/documents',{method:'POST',headers:{Authorization:'Bearer '+C.pk,'Content-Type':'application/json'},body:JSON.stringify(pl)});
@@ -181,6 +222,7 @@ async function gen(){
   }catch(e){sm('E','Errore: '+e.message);}
   finally{btn.disabled=false;btn.innerHTML='\uD83D\uDCC4 Genera e Scarica PDF';}
 }
+
 function sm(t,m){var e=document.getElementById('msg');e.className='msg '+t;e.innerHTML=m;}
 function hm(){document.getElementById('msg').className='msg';}
 (function(){var t=new Date();document.getElementById('df').value=fmt(new Date(t.getFullYear(),t.getMonth(),1));document.getElementById('dt').value=fmt(t);})();
