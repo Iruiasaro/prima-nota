@@ -232,7 +232,7 @@ async function ant(){
   try{var r=await fr(f,to);hm();rend(r);}catch(e){sm('E','Errore: '+e.message);}
 }
 
-window.buildPayloadSemplice=function(recs,f,to){
+window.buildPayloadCompleto=function(recs,f,to){
   var tD=0,tA=0,tID=0,tIC=0;
   recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
   var saldoIvato=(tA+tIC)-(tD+tID);
