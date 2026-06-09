@@ -252,7 +252,8 @@ async function gen(){
       sm('L','<span class="sp"></span> Generazione PDF... ('+(i+1)+'s)');
     }
     if(!url)throw new Error('Timeout generazione PDF. Riprova.');
-    var a=document.createElement('a');a.href=url;a.download='prima_nota_'+f+'_'+to+'.pdf';a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);
+    var tipo_vista=vistaAttuale==='semplice'?'semplificata':'completa';
+var a=document.createElement('a');a.href=url;a.download='primanota_'+tipo_vista+'_'+fmtData(f).replace(/\//g,'-')+'_'+fmtData(to).replace(/\//g,'-')+'.pdf';a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);
     sm('S','\u2705 PDF generato! Download avviato.');
   }catch(e){sm('E','Errore: '+e.message);}
   finally{btn.disabled=false;btn.innerHTML='\uD83D\uDCC4 Genera e Scarica PDF';}
