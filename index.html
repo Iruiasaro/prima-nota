@@ -152,7 +152,7 @@ async function fr(f,to){
 function bc(t){return t==='Acquisto'?'bA':t==='Vendita'?'bV':'bC';}
 
 function rendSemplice(recs,bd){
-  var h='<table><thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">IVA Debito</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA Credito</th></tr></thead><tbody>';
+ <th style="text-align:right">Dare</th><th style="text-align:right">IVA Credito</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA Debito</th>
   Object.keys(bd).sort().forEach(function(dt){
     var rows=bd[dt];
     var byTipo={};
