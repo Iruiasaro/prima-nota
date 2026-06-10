@@ -262,6 +262,49 @@ window.buildPayloadCompleto=function(recs,f,to){
   return {cliente:'Urzetti Consulting',periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_iva_debito:ef(tID),totale_avere:ef(tA),totale_iva_credito:ef(tIC),totale_ivato_dare:ef(tD+tID),totale_ivato_avere:ef(tA+tIC),saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'};
 }
 
+  window.buildPayloadSemplice=function(recs,f,to){
+  var tD=0,tA=0,tID=0,tIC=0;
+  recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
+  var saldoIvato=(tA+tIC)-(tD+tID);
+  var bd={};
+  recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
+  var righe=[];
+  Object.keys(bd).sort().forEach(function(dt){
+    var byTipo={};
+    bd[dt].forEach(function(r){
+      if(!byTipo[r.tipo]) byTipo[r.tipo]={dare:0,avere:0,ivaD:0,ivaC:0};
+      byTipo[r.tipo].dare+=r.dare;
+      byTipo[r.tipo].avere+=r.avere;
+      byTipo[r.tipo].ivaD+=r.ivaDebito;
+      byTipo[r.tipo].ivaC+=r.ivaCredito;
+    });
+    Object.keys(byTipo).forEach(function(tipo){
+      var t=byTipo[tipo];
+      righe.push({fields:{
+        'Data':fmtData(dt),
+        'Tipo':tipo,
+        'DARE':t.dare?ef(t.dare):'',
+        'IVA Credito':t.ivaD?ef(t.ivaD):'',
+        'AVERE':t.avere?ef(t.avere):'',
+        'IVA Debito':t.ivaC?ef(t.ivaC):''
+      }});
+    });
+  });
+  return {
+    cliente:'Urzetti Consulting',
+    periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),
+    data_generazione:new Date().toLocaleDateString('it-IT'),
+    righe:righe,
+    totale_dare:ef(tD),
+    totale_iva_credito:ef(tID),
+    totale_avere:ef(tA),
+    totale_iva_debito:ef(tIC),
+    totale_ivato_dare:ef(tD+tID),
+    totale_ivato_avere:ef(tA+tIC),
+    saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'
+  };
+};
+
 function buildPayloadCompleto(recs,f,to){
   var tD=0,tA=0,tID=0,tIC=0;
   recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
@@ -314,7 +357,7 @@ async function gen(tipo){
     var recs=await fr(f,to);
     if(!recs.length){sm('E','Nessun movimento nel periodo.');btn.disabled=false;btn.textContent=tipo==='semplice'?'\uD83D\uDCC4 PDF Semplificato':'\uD83D\uDCC4 PDF Completo';return;}
     rend(recs);
-    var payload=tipo==='semplice'?buildPayloadSemplice(recs,f,to):buildPayloadCompleto(recs,f,to);
+    var payload=tipo==='semplice'?window.buildPayloadSemplice(recs,f,to):buildPayloadCompleto(recs,f,to);
     var templateId=tipo==='semplice'?C.tp_sempl:C.tp_compl;
     var pl={document:{document_template_id:templateId,status:'pending',payload:payload}};
     sm('L','<span class="sp"></span> Invio a PDFMonkey...');
