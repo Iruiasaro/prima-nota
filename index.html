@@ -104,7 +104,7 @@ var ef=function(v){return v===0?'':v.toLocaleString('it-IT',{minimumFractionDigi
 var fmt=function(d){return d.toISOString().split('T')[0];};
 var fmtData=function(d){if(!d)return'';var p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d;};
 var vistaAttuale='semplice';
-var ultimiRecs=[];
+window.ultimiRecs=[];
 
 function setView(v,btn){
   vistaAttuale=v;
