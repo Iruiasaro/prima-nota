@@ -282,7 +282,7 @@ window.buildPayloadCompleto=function(recs,f,to){
       var t=byTipo[tipo];
       righe.push({fields:{
         'Data':fmtData(dt),
-        'Tipo':tipo,
+        'Tipo':tipo,F
         'DARE':t.dare?ef(t.dare):'',
         'IVA Credito':t.ivaD?ef(t.ivaD):'',
         'AVERE':t.avere?ef(t.avere):'',
@@ -304,7 +304,6 @@ window.buildPayloadCompleto=function(recs,f,to){
     saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'
   };
 };
-
 function buildPayloadCompleto(recs,f,to){
   var tD=0,tA=0,tID=0,tIC=0;
   recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
@@ -318,16 +317,16 @@ function buildPayloadCompleto(recs,f,to){
         r.righe.forEach(function(riga){
           var dare=r.isDare?riga.imponibile:0;
           var avere=r.isDare?0:riga.imponibile;
-          var ivaD=r.isDare?riga.iva:0;
-          var ivaC=r.isDare?0:riga.iva;
+          var ivaC=r.isDare?riga.iva:0;
+          var ivaD=r.isDare?0:riga.iva;
           righe.push({fields:{
             'Data':fmtData(dt),
             'Tipo':r.tipo,
             'Aliquota':riga.aliquota||'-',
             'DARE':dare?ef(dare):'',
-            'IVA Debito':ivaD?ef(ivaD):'',
+            'IVA Credito':ivaC?ef(ivaC):'',
             'AVERE':avere?ef(avere):'',
-            'IVA Credito':ivaC?ef(ivaC):''
+            'IVA Debito':ivaD?ef(ivaD):''
           }});
         });
       } else {
@@ -336,10 +335,27 @@ function buildPayloadCompleto(recs,f,to){
           'Tipo':r.tipo,
           'Aliquota':'-',
           'DARE':r.dare?ef(r.dare):'',
-          'IVA Debito':r.ivaDebito?ef(r.ivaDebito):'',
+          'IVA Credito':r.ivaCredito?ef(r.ivaCredito):'',
           'AVERE':r.avere?ef(r.avere):'',
-          'IVA Credito':r.ivaCredito?ef(r.ivaCredito):''
+          'IVA Debito':r.ivaDebito?ef(r.ivaDebito):''
         }});
+      }
+    });
+  });
+  return {
+    cliente:'Urzetti Consulting',
+    periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),
+    data_generazione:new Date().toLocaleDateString('it-IT'),
+    righe:righe,
+    totale_dare:ef(tD),
+    totale_iva_credito:ef(tID),
+    totale_avere:ef(tA),
+    totale_iva_debito:ef(tIC),
+    totale_ivato_dare:ef(tD+tID),
+    totale_ivato_avere:ef(tA+tIC),
+    saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'
+  };
+}
       }
     });
   });
