@@ -72,9 +72,9 @@ tbody tr:hover td{background:#2d5986}
   <div class="stats" id="stats" style="display:none">
     <div class="stat"><div class="sv" id="s1">-</div><div class="sl">Movimenti</div></div>
     <div class="stat"><div class="sv red" id="s2">-</div><div class="sl">Totale Dare</div></div>
-    <div class="stat"><div class="sv orange" id="s6">-</div><div class="sl">IVA Debito</div></div>
+    <div class="stat"><div class="sv blue" id="s6">-</div><div class="sl">IVA Credito</div></div>
     <div class="stat"><div class="sv green" id="s3">-</div><div class="sl">Totale Avere</div></div>
-    <div class="stat"><div class="sv blue" id="s4">-</div><div class="sl">IVA Credito</div></div>
+    <div class="stat"><div class="sv orange" id="s4">-</div><div class="sl">IVA Debito</div></div>
     <div class="stat"><div class="sv" id="s5">-</div><div class="sl">Saldo Ivato</div></div>
   </div>
   <div class="preview" id="prev">
@@ -95,284 +95,122 @@ tbody tr:hover td{background:#2d5986}
   <div class="msg" id="msg"></div>
 </div>
 <script>
-var C={
-  pk:'PWpTAPVUFyyRzhz4emsP',
-  tp_sempl:'cc4357fd-f64b-4f6d-91ec-b44ce7b80349',
-  tp_compl:'e9574598-e7cc-4e11-88f8-bac934398b22'
-};
+var C={pk:'PWpTAPVUFyyRzhz4emsP',tp_sempl:'cc4357fd-f64b-4f6d-91ec-b44ce7b80349',tp_compl:'e9574598-e7cc-4e11-88f8-bac934398b22'};
 var ef=function(v){return v===0?'':v.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});};
 var fmt=function(d){return d.toISOString().split('T')[0];};
 var fmtData=function(d){if(!d)return'';var p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d;};
 var vistaAttuale='semplice';
 window.ultimiRecs=[];
-
-function setView(v,btn){
-  vistaAttuale=v;
-  document.querySelectorAll('.vt').forEach(function(b){b.classList.remove('active');});
-  btn.classList.add('active');
-  if(ultimiRecs.length) rend(ultimiRecs);
-}
-
+function setView(v,btn){vistaAttuale=v;document.querySelectorAll('.vt').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');if(window.ultimiRecs.length)rend(window.ultimiRecs);}
 function sp(p,btn){
   document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
-  var now=new Date();
-  var y=now.getFullYear(),m=now.getMonth()+1,d=now.getDate();
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth()+1,d=now.getDate();
   var offset=now.getTimezoneOffset();
   if(offset<0){var fixed=new Date(now.getTime()-offset*60000);y=fixed.getFullYear();m=fixed.getMonth()+1;d=fixed.getDate();}
   var pad=function(n){return n<10?'0'+n:String(n);};
-  var f,to;
-  to=y+'-'+pad(m)+'-'+pad(d);
+  var f,to;to=y+'-'+pad(m)+'-'+pad(d);
   if(p==='today'){f=to;}
   else if(p==='week'){var wd=now.getDay()===0?6:now.getDay()-1;var mon=new Date(now);mon.setDate(d-wd);f=mon.getFullYear()+'-'+pad(mon.getMonth()+1)+'-'+pad(mon.getDate());}
   else if(p==='month'){f=y+'-'+pad(m)+'-01';}
   else if(p==='lastmonth'){var lm=m===1?12:m-1;var ly=m===1?y-1:y;var lastDay=new Date(y,m-1,0).getDate();f=ly+'-'+pad(lm)+'-01';to=ly+'-'+pad(lm)+'-'+pad(lastDay);}
   else if(p==='year'){f=y+'-01-01';}
   else return;
-  document.getElementById('df').value=f;
-  document.getElementById('dt').value=to;
+  document.getElementById('df').value=f;document.getElementById('dt').value=to;
 }
-
 async function fr(f,to){
   var r=await fetch('https://prima-nota-api.iruiasan123.workers.dev/?from='+f+'&to='+to);
   if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||('Errore '+r.status));}
   var all=await r.json();
-  return all.map(function(r){return{
-    data:r.fields['Data']||'',
-    desc:r.fields['Descrizione']||'',
-    tipo:r.fields['Tipo']||'',
-    dare:parseFloat(r.fields['DARE']||0),
-    avere:parseFloat(r.fields['AVERE']||0),
-   ivaDebito:parseFloat(r.fields['IVA_CREDITO']||0),
-ivaCredito:parseFloat(r.fields['IVA_DEBITO']||0),
-    righe:r.fields['_righe']||[],
-    isDare:r.fields['_isDare']||false
-  };});
+  return all.map(function(r){return{data:r.fields['Data']||'',desc:r.fields['Descrizione']||'',tipo:r.fields['Tipo']||'',dare:parseFloat(r.fields['DARE']||0),avere:parseFloat(r.fields['AVERE']||0),ivaCredito:parseFloat(r.fields['IVA_CREDITO']||0),ivaDebito:parseFloat(r.fields['IVA_DEBITO']||0),righe:r.fields['_righe']||[],isDare:r.fields['_isDare']||false};});
 }
-
 function bc(t){return t==='Acquisto'?'bA':t==='Vendita'?'bV':'bC';}
 function rendSemplice(recs,bd){
   var h='<table><thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">IVA Credito</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA Debito</th></tr></thead><tbody>';
   Object.keys(bd).sort().forEach(function(dt){
-    var rows=bd[dt];
-    var byTipo={};
-    rows.forEach(function(r){
-      if(!byTipo[r.tipo]) byTipo[r.tipo]={dare:0,avere:0,ivaD:0,ivaC:0};
-      byTipo[r.tipo].dare+=r.dare;
-      byTipo[r.tipo].avere+=r.avere;
-      byTipo[r.tipo].ivaD+=r.ivaDebito;
-      byTipo[r.tipo].ivaC+=r.ivaCredito;
-    });
-    var dD=0,dA=0,dID=0,dIC=0;
-    rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dID+=r.ivaDebito;dIC+=r.ivaCredito;});
+    var rows=bd[dt],byTipo={};
+    rows.forEach(function(r){if(!byTipo[r.tipo])byTipo[r.tipo]={dare:0,avere:0,ivaC:0,ivaD:0};byTipo[r.tipo].dare+=r.dare;byTipo[r.tipo].avere+=r.avere;byTipo[r.tipo].ivaC+=r.ivaCredito;byTipo[r.tipo].ivaD+=r.ivaDebito;});
+    var dD=0,dA=0,dIC=0,dID=0;rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dIC+=r.ivaCredito;dID+=r.ivaDebito;});
     h+='<tr class="dgr"><td colspan="6">\uD83D\uDCC5 '+fmtData(dt)+'</td></tr>';
-    Object.keys(byTipo).forEach(function(tipo){
-      var t=byTipo[tipo];
-      h+='<tr><td>'+fmtData(dt)+'</td><td><span class="badge '+bc(tipo)+'">'+tipo+'</span></td><td class="num">'+(t.dare?ef(t.dare):'')+'</td><td class="num" style="color:#63b3ed">'+(t.ivaC?ef(t.ivaC):'')+'</td><td class="num">'+(t.avere?ef(t.avere):'')+'</td><td class="num" style="color:#f6ad55">'+(t.ivaD?ef(t.ivaD):'')+'</td></tr>';
-    });
+    Object.keys(byTipo).forEach(function(tipo){var t=byTipo[tipo];h+='<tr><td>'+fmtData(dt)+'</td><td><span class="badge '+bc(tipo)+'">'+tipo+'</span></td><td class="num">'+(t.dare?ef(t.dare):'')+'</td><td class="num" style="color:#63b3ed">'+(t.ivaC?ef(t.ivaC):'')+'</td><td class="num">'+(t.avere?ef(t.avere):'')+'</td><td class="num" style="color:#f6ad55">'+(t.ivaD?ef(t.ivaD):'')+'</td></tr>';});
     h+='<tr class="str"><td colspan="2" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dIC?ef(dIC):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dID?ef(dID):'')+'</td></tr>';
   });
   return h;
 }
-
 function rendCompleta(recs,bd){
-  var h='<table><thead><tr><th>Data</th><th>Tipo</th><th>Aliquota</th><th style="text-align:right">Dare</th><th style="text-align:right">IVA Debito</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA Credito</th></tr></thead><tbody>';
+  var h='<table><thead><tr><th>Data</th><th>Tipo</th><th>Aliquota</th><th style="text-align:right">Dare</th><th style="text-align:right">IVA Credito</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA Debito</th></tr></thead><tbody>';
   Object.keys(bd).sort().forEach(function(dt){
-    var rows=bd[dt],dD=0,dA=0,dID=0,dIC=0;
-    rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dID+=r.ivaDebito;dIC+=r.ivaCredito;});
+    var rows=bd[dt],dD=0,dA=0,dIC=0,dID=0;rows.forEach(function(r){dD+=r.dare;dA+=r.avere;dIC+=r.ivaCredito;dID+=r.ivaDebito;});
     h+='<tr class="dgr"><td colspan="7">\uD83D\uDCC5 '+fmtData(dt)+'</td></tr>';
     rows.forEach(function(r){
-      if(r.righe&&r.righe.length>0){
-        r.righe.forEach(function(riga){
-          var dare=r.isDare?riga.imponibile:0;
-          var avere=r.isDare?0:riga.imponibile;
-          var ivaD=r.isDare?riga.iva:0;
-          var ivaC=r.isDare?0:riga.iva;
-          h+='<tr><td>'+fmtData(r.data)+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td style="color:#94afc8;font-size:.75rem;">'+(riga.aliquota||'-')+'</td><td class="num">'+(dare?ef(dare):'')+'</td><td class="num" style="color:#f6ad55">'+(ivaD?ef(ivaD):'')+'</td><td class="num">'+(avere?ef(avere):'')+'</td><td class="num" style="color:#63b3ed">'+(ivaC?ef(ivaC):'')+'</td></tr>';
-        });
-      } else {
-        h+='<tr><td>'+fmtData(r.data)+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td>-</td><td class="num">'+(r.dare?ef(r.dare):'')+'</td><td class="num">'+(r.ivaDebito?ef(r.ivaDebito):'')+'</td><td class="num">'+(r.avere?ef(r.avere):'')+'</td><td class="num">'+(r.ivaCredito?ef(r.ivaCredito):'')+'</td></tr>';
-      }
+      if(r.righe&&r.righe.length>0){r.righe.forEach(function(riga){var dare=r.isDare?riga.imponibile:0,avere=r.isDare?0:riga.imponibile,ivaC=r.isDare?riga.iva:0,ivaD=r.isDare?0:riga.iva;h+='<tr><td>'+fmtData(r.data)+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td style="color:#94afc8;font-size:.75rem;">'+(riga.aliquota||'-')+'</td><td class="num">'+(dare?ef(dare):'')+'</td><td class="num" style="color:#63b3ed">'+(ivaC?ef(ivaC):'')+'</td><td class="num">'+(avere?ef(avere):'')+'</td><td class="num" style="color:#f6ad55">'+(ivaD?ef(ivaD):'')+'</td></tr>';});}
+      else{h+='<tr><td>'+fmtData(r.data)+'</td><td><span class="badge '+bc(r.tipo)+'">'+r.tipo+'</span></td><td>-</td><td class="num">'+(r.dare?ef(r.dare):'')+'</td><td class="num" style="color:#63b3ed">'+(r.ivaCredito?ef(r.ivaCredito):'')+'</td><td class="num">'+(r.avere?ef(r.avere):'')+'</td><td class="num" style="color:#f6ad55">'+(r.ivaDebito?ef(r.ivaDebito):'')+'</td></tr>';}
     });
-    h+='<tr class="str"><td colspan="3" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dID?ef(dID):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dIC?ef(dIC):'')+'</td></tr>';
+    h+='<tr class="str"><td colspan="3" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dIC?ef(dIC):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dID?ef(dID):'')+'</td></tr>';
   });
   return h;
 }
-
 function rend(recs){
-  ultimiRecs=recs;
+  window.ultimiRecs=recs;
   var pv=document.getElementById('prev'),st=document.getElementById('stats');
   if(!recs.length){pv.classList.add('show');document.getElementById('tw').innerHTML='<div class="em">Nessun movimento nel periodo.</div>';st.style.display='none';return;}
-  var tD=0,tA=0,tID=0,tIC=0;
-  recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
-  var saldoIvato=(tA+tIC)-(tD+tID);
+  var tD=0,tA=0,tIC=0,tID=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tIC+=r.ivaCredito;tID+=r.ivaDebito;});
+  var saldoIvato=(tA+tID)-(tD+tIC);
   st.style.display='flex';
   document.getElementById('s1').textContent=recs.length;
   document.getElementById('s2').textContent='\u20AC '+ef(tD);
-  document.getElementById('s6').textContent='\u20AC '+ef(tID);
+  document.getElementById('s6').textContent='\u20AC '+ef(tIC);
   document.getElementById('s3').textContent='\u20AC '+ef(tA);
-  document.getElementById('s4').textContent='\u20AC '+ef(tIC);
-  var se=document.getElementById('s5');
-  se.textContent=(saldoIvato>=0?'+':'')+'\u20AC '+ef(saldoIvato);
-  se.className='sv '+(saldoIvato>=0?'green':'red');
+  document.getElementById('s4').textContent='\u20AC '+ef(tID);
+  var se=document.getElementById('s5');se.textContent=(saldoIvato>=0?'+':'')+'\u20AC '+ef(saldoIvato);se.className='sv '+(saldoIvato>=0?'green':'red');
   var bd={};recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
-  var h=vistaAttuale==='semplice'?rendSemplice(recs,bd):rendCompleta(recs,bd);
   var cols=vistaAttuale==='semplice'?2:3;
-  h+='</tbody><tfoot>';
-  h+='<tr class="ttr"><td colspan="'+cols+'">TOTALI IMPONIBILI</td><td class="num">'+ef(tD)+'</td><td class="num" style="color:#f6ad55">'+ef(tID)+'</td><td class="num">'+ef(tA)+'</td><td class="num" style="color:#63b3ed">'+ef(tIC)+'</td></tr>';
-  h+='<tr class="ttot"><td colspan="'+cols+'">TOTALE IVATO</td><td class="num">\u20AC '+ef(tD+tID)+'</td><td></td><td class="num">\u20AC '+ef(tA+tIC)+'</td><td></td></tr>';
-  h+='</tfoot></table>';
+  var h=vistaAttuale==='semplice'?rendSemplice(recs,bd):rendCompleta(recs,bd);
+  h+='</tbody><tfoot><tr class="ttr"><td colspan="'+cols+'">TOTALI IMPONIBILI</td><td class="num">'+ef(tD)+'</td><td class="num" style="color:#63b3ed">'+ef(tIC)+'</td><td class="num">'+ef(tA)+'</td><td class="num" style="color:#f6ad55">'+ef(tID)+'</td></tr>';
+  h+='<tr class="ttot"><td colspan="'+cols+'">TOTALE IVATO</td><td class="num">\u20AC '+ef(tD+tIC)+'</td><td></td><td class="num">\u20AC '+ef(tA+tID)+'</td><td></td></tr></tfoot></table>';
   pv.classList.add('show');document.getElementById('tw').innerHTML=h;
 }
-
 async function ant(){
   var f=document.getElementById('df').value,to=document.getElementById('dt').value;
   if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
   sm('L','<span class="sp"></span> Caricamento da Airtable...');
   try{var r=await fr(f,to);hm();rend(r);}catch(e){sm('E','Errore: '+e.message);}
 }
-
-window.buildPayloadCompleto=function(recs,f,to){
-  var tD=0,tA=0,tID=0,tIC=0;
-  recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
-  var saldoIvato=(tA+tIC)-(tD+tID);
-  var bd={};
-  recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
+function buildPayloadSemplice(recs,f,to){
+  var tD=0,tA=0,tIC=0,tID=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tIC+=r.ivaCredito;tID+=r.ivaDebito;});
+  var saldoIvato=(tA+tID)-(tD+tIC);
+  var bd={};recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
   var righe=[];
   Object.keys(bd).sort().forEach(function(dt){
     var byTipo={};
-    bd[dt].forEach(function(r){
-      if(!byTipo[r.tipo]) byTipo[r.tipo]={dare:0,avere:0,ivaD:0,ivaC:0};
-      byTipo[r.tipo].dare+=r.dare;
-      byTipo[r.tipo].avere+=r.avere;
-      byTipo[r.tipo].ivaD+=r.ivaDebito;
-      byTipo[r.tipo].ivaC+=r.ivaCredito;
-    });
-    Object.keys(byTipo).forEach(function(tipo){
-      var t=byTipo[tipo];
-      righe.push({fields:{
-        'Data':fmtData(dt),
-        'Tipo':tipo,
-        'DARE':t.dare?ef(t.dare):'',
-        'IVA Debito':t.ivaD?ef(t.ivaD):'',
-        'AVERE':t.avere?ef(t.avere):'',
-        'IVA Credito':t.ivaC?ef(t.ivaC):''
-      }});
-    });
+    bd[dt].forEach(function(r){if(!byTipo[r.tipo])byTipo[r.tipo]={dare:0,avere:0,ivaC:0,ivaD:0};byTipo[r.tipo].dare+=r.dare;byTipo[r.tipo].avere+=r.avere;byTipo[r.tipo].ivaC+=r.ivaCredito;byTipo[r.tipo].ivaD+=r.ivaDebito;});
+    Object.keys(byTipo).forEach(function(tipo){var t=byTipo[tipo];righe.push({fields:{'Data':fmtData(dt),'Tipo':tipo,'DARE':t.dare?ef(t.dare):'','IVA Credito':t.ivaC?ef(t.ivaC):'','AVERE':t.avere?ef(t.avere):'','IVA Debito':t.ivaD?ef(t.ivaD):''}});});
   });
-  return {cliente:'Urzetti Consulting',periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_iva_debito:ef(tID),totale_avere:ef(tA),totale_iva_credito:ef(tIC),totale_ivato_dare:ef(tD+tID),totale_ivato_avere:ef(tA+tIC),saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'};
+  return {cliente:'Urzetti Consulting',periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_iva_credito:ef(tIC),totale_avere:ef(tA),totale_iva_debito:ef(tID),totale_ivato_dare:ef(tD+tIC),totale_ivato_avere:ef(tA+tID),saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'};
 }
-
-  window.buildPayloadSemplice=function(recs,f,to){
-  var tD=0,tA=0,tID=0,tIC=0;
-  recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
-  var saldoIvato=(tA+tIC)-(tD+tID);
-  var bd={};
-  recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
-  var righe=[];
-  Object.keys(bd).sort().forEach(function(dt){
-    var byTipo={};
-    bd[dt].forEach(function(r){
-      if(!byTipo[r.tipo]) byTipo[r.tipo]={dare:0,avere:0,ivaD:0,ivaC:0};
-      byTipo[r.tipo].dare+=r.dare;
-      byTipo[r.tipo].avere+=r.avere;
-      byTipo[r.tipo].ivaD+=r.ivaDebito;
-      byTipo[r.tipo].ivaC+=r.ivaCredito;
-    });
-    Object.keys(byTipo).forEach(function(tipo){
-      var t=byTipo[tipo];
-      righe.push({fields:{
-        'Data':fmtData(dt),
-        'Tipo':tipo,F
-        'DARE':t.dare?ef(t.dare):'',
-        'IVA Credito':t.ivaD?ef(t.ivaD):'',
-        'AVERE':t.avere?ef(t.avere):'',
-        'IVA Debito':t.ivaC?ef(t.ivaC):''
-      }});
-    });
-  });
-  return {
-    cliente:'Urzetti Consulting',
-    periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),
-    data_generazione:new Date().toLocaleDateString('it-IT'),
-    righe:righe,
-    totale_dare:ef(tD),
-    totale_iva_credito:ef(tID),
-    totale_avere:ef(tA),
-    totale_iva_debito:ef(tIC),
-    totale_ivato_dare:ef(tD+tID),
-    totale_ivato_avere:ef(tA+tIC),
-    saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'
-  };
-};
 function buildPayloadCompleto(recs,f,to){
-  var tD=0,tA=0,tID=0,tIC=0;
-  recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tID+=r.ivaDebito;tIC+=r.ivaCredito;});
-  var saldoIvato=(tA+tIC)-(tD+tID);
-  var bd={};
-  recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
+  var tD=0,tA=0,tIC=0,tID=0;recs.forEach(function(r){tD+=r.dare;tA+=r.avere;tIC+=r.ivaCredito;tID+=r.ivaDebito;});
+  var saldoIvato=(tA+tID)-(tD+tIC);
+  var bd={};recs.forEach(function(r){if(!bd[r.data])bd[r.data]=[];bd[r.data].push(r);});
   var righe=[];
   Object.keys(bd).sort().forEach(function(dt){
     bd[dt].forEach(function(r){
-      if(r.righe&&r.righe.length>0){
-        r.righe.forEach(function(riga){
-          var dare=r.isDare?riga.imponibile:0;
-          var avere=r.isDare?0:riga.imponibile;
-          var ivaC=r.isDare?riga.iva:0;
-          var ivaD=r.isDare?0:riga.iva;
-          righe.push({fields:{
-            'Data':fmtData(dt),
-            'Tipo':r.tipo,
-            'Aliquota':riga.aliquota||'-',
-            'DARE':dare?ef(dare):'',
-            'IVA Credito':ivaC?ef(ivaC):'',
-            'AVERE':avere?ef(avere):'',
-            'IVA Debito':ivaD?ef(ivaD):''
-          }});
-        });
-      } else {
-        righe.push({fields:{
-          'Data':fmtData(dt),
-          'Tipo':r.tipo,
-          'Aliquota':'-',
-          'DARE':r.dare?ef(r.dare):'',
-          'IVA Credito':r.ivaCredito?ef(r.ivaCredito):'',
-          'AVERE':r.avere?ef(r.avere):'',
-          'IVA Debito':r.ivaDebito?ef(r.ivaDebito):''
-        }});
+      if(r.righe&&r.righe.length>0){r.righe.forEach(function(riga){var dare=r.isDare?riga.imponibile:0,avere=r.isDare?0:riga.imponibile,ivaC=r.isDare?riga.iva:0,ivaD=r.isDare?0:riga.iva;righe.push({fields:{'Data':fmtData(dt),'Tipo':r.tipo,'Aliquota':riga.aliquota||'-','DARE':dare?ef(dare):'','IVA Credito':ivaC?ef(ivaC):'','AVERE':avere?ef(avere):'','IVA Debito':ivaD?ef(ivaD):''}});});}
+      else{righe.push({fields:{'Data':fmtData(dt),'Tipo':r.tipo,'Aliquota':'-','DARE':r.dare?ef(r.dare):'','IVA Credito':r.ivaCredito?ef(r.ivaCredito):'','AVERE':r.avere?ef(r.avere):'','IVA Debito':r.ivaDebito?ef(r.ivaDebito):''}});}
     });
   });
-  return {
-    cliente:'Urzetti Consulting',
-    periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),
-    data_generazione:new Date().toLocaleDateString('it-IT'),
-    righe:righe,
-    totale_dare:ef(tD),
-    totale_iva_credito:ef(tID),
-    totale_avere:ef(tA),
-    totale_iva_debito:ef(tIC),
-    totale_ivato_dare:ef(tD+tID),
-    totale_ivato_avere:ef(tA+tIC),
-    saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'
-  };
+  return {cliente:'Urzetti Consulting',periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_iva_credito:ef(tIC),totale_avere:ef(tA),totale_iva_debito:ef(tID),totale_ivato_dare:ef(tD+tIC),totale_ivato_avere:ef(tA+tID),saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'};
 }
-      }
-    });
-  });
-  return {cliente:'Urzetti Consulting',periodo:f===to?'Giorno '+fmtData(f):'Dal '+fmtData(f)+' al '+fmtData(to),data_generazione:new Date().toLocaleDateString('it-IT'),righe:righe,totale_dare:ef(tD),totale_iva_debito:ef(tID),totale_avere:ef(tA),totale_iva_credito:ef(tIC),totale_ivato_dare:ef(tD+tID),totale_ivato_avere:ef(tA+tIC),saldo:(saldoIvato>=0?'+':'')+ef(saldoIvato)+'\u20AC'};
-}
-
 async function gen(tipo){
   var f=document.getElementById('df').value,to=document.getElementById('dt').value;
   if(!f||!to){sm('E','Seleziona prima il periodo.');return;}
   var btnId=tipo==='semplice'?'bg-sempl':'bg-compl';
-  var btn=document.getElementById(btnId);
-  btn.disabled=true;btn.textContent='Generazione in corso...';
+  var btn=document.getElementById(btnId);btn.disabled=true;btn.textContent='Generazione in corso...';
   sm('L','<span class="sp"></span> Recupero dati...');
   try{
     var recs=await fr(f,to);
     if(!recs.length){sm('E','Nessun movimento nel periodo.');btn.disabled=false;btn.textContent=tipo==='semplice'?'\uD83D\uDCC4 PDF Semplificato':'\uD83D\uDCC4 PDF Completo';return;}
     rend(recs);
-    var payload=tipo==='semplice'?window.buildPayloadSemplice(recs,f,to):buildPayloadCompleto(recs,f,to);
+    var payload=tipo==='semplice'?buildPayloadSemplice(recs,f,to):buildPayloadCompleto(recs,f,to);
     var templateId=tipo==='semplice'?C.tp_sempl:C.tp_compl;
     var pl={document:{document_template_id:templateId,status:'pending',payload:payload}};
     sm('L','<span class="sp"></span> Invio a PDFMonkey...');
@@ -394,7 +232,6 @@ async function gen(tipo){
   }catch(e){sm('E','Errore: '+e.message);}
   finally{btn.disabled=false;btn.innerHTML=tipo==='semplice'?'\uD83D\uDCC4 PDF Semplificato':'\uD83D\uDCC4 PDF Completo';}
 }
-
 function sm(t,m){var e=document.getElementById('msg');e.className='msg '+t;e.innerHTML=m;}
 function hm(){document.getElementById('msg').className='msg';}
 (function(){var t=new Date();document.getElementById('df').value=fmt(new Date(t.getFullYear(),t.getMonth(),1));document.getElementById('dt').value=fmt(t);})();
