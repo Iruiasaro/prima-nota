@@ -150,9 +150,8 @@ async function fr(f,to){
 }
 
 function bc(t){return t==='Acquisto'?'bA':t==='Vendita'?'bV':'bC';}
-
 function rendSemplice(recs,bd){
-<th style="text-align:right">Dare</th><th style="text-align:right">IVA Credito</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA Debito</th>
+  var h='<table><thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right">Dare</th><th style="text-align:right">IVA Credito</th><th style="text-align:right">Avere</th><th style="text-align:right">IVA Debito</th></tr></thead><tbody>';
   Object.keys(bd).sort().forEach(function(dt){
     var rows=bd[dt];
     var byTipo={};
@@ -168,9 +167,9 @@ function rendSemplice(recs,bd){
     h+='<tr class="dgr"><td colspan="6">\uD83D\uDCC5 '+fmtData(dt)+'</td></tr>';
     Object.keys(byTipo).forEach(function(tipo){
       var t=byTipo[tipo];
-      h+='<tr><td>'+fmtData(dt)+'</td><td><span class="badge '+bc(tipo)+'">'+tipo+'</span></td><td class="num">'+(t.dare?ef(t.dare):'')+'</td><td class="num" style="color:#f6ad55">'+(t.ivaD?ef(t.ivaD):'')+'</td><td class="num">'+(t.avere?ef(t.avere):'')+'</td><td class="num" style="color:#63b3ed">'+(t.ivaC?ef(t.ivaC):'')+'</td></tr>';
+      h+='<tr><td>'+fmtData(dt)+'</td><td><span class="badge '+bc(tipo)+'">'+tipo+'</span></td><td class="num">'+(t.dare?ef(t.dare):'')+'</td><td class="num" style="color:#63b3ed">'+(t.ivaC?ef(t.ivaC):'')+'</td><td class="num">'+(t.avere?ef(t.avere):'')+'</td><td class="num" style="color:#f6ad55">'+(t.ivaD?ef(t.ivaD):'')+'</td></tr>';
     });
-    h+='<tr class="str"><td colspan="2" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dID?ef(dID):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dIC?ef(dIC):'')+'</td></tr>';
+    h+='<tr class="str"><td colspan="2" style="text-align:right;padding-right:8px">Subtotale '+fmtData(dt)+'</td><td class="num">'+(dD?ef(dD):'')+'</td><td class="num">'+(dIC?ef(dIC):'')+'</td><td class="num">'+(dA?ef(dA):'')+'</td><td class="num">'+(dID?ef(dID):'')+'</td></tr>';
   });
   return h;
 }
