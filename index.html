@@ -237,8 +237,15 @@ function genPDF(tipo, recs, f, to){
     styles:{fontSize:8,cellPadding:2},
     headStyles:{fillColor:[30,58,95],textColor:[255,255,255],fontStyle:'bold'},
     alternateRowStyles:{fillColor:[247,248,250]},
-    columnStyles:tipo==='semplice'?{2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'}}:{3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}},
-    margin:{top:24}
+columnStyles:tipo==='semplice'?{
+  0:{cellWidth:28},1:{cellWidth:30},
+  2:{halign:'right',cellWidth:32},3:{halign:'right',cellWidth:28},
+  4:{halign:'right',cellWidth:32},5:{halign:'right',cellWidth:28}
+}:{
+  0:{cellWidth:24},1:{cellWidth:26},2:{cellWidth:22},
+  3:{halign:'right',cellWidth:28},4:{halign:'right',cellWidth:24},
+  5:{halign:'right',cellWidth:28},6:{halign:'right',cellWidth:24}
+},
   });
 
   // Saldo finale
