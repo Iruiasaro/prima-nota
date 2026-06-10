@@ -121,7 +121,7 @@ async function fr(f,to){
   var r=await fetch('https://prima-nota-api.iruiasan123.workers.dev/?from='+f+'&to='+to);
   if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||('Errore '+r.status));}
   var all=await r.json();
-  return all.map(function(r){return{data:r.fields['Data']||'',desc:r.fields['Descrizione']||'',tipo:r.fields['Tipo']||'',dare:parseFloat(r.fields['DARE']||0),avere:parseFloat(r.fields['AVERE']||0),ivaCredito:parseFloat(r.fields['IVA_CREDITO']||0),ivaDebito:parseFloat(r.fields['IVA_DEBITO']||0),righe:r.fields['_righe']||[],isDare:r.fields['_isDare']||false};});
+  return all.map(function(r){return{data:r.fields['Data']||'',desc:r.fields['Descrizione']||'',tipo:r.fields['Tipo']||'',dare:parseFloat(r.fields['DARE']||0),avere:parseFloat(r.fields['AVERE']||0),ivaCredito:parseFloat(r.fields['IVA_DEBITO']||0),ivaDebito:parseFloat(r.fields['IVA_CREDITO']||0),righe:r.fields['_righe']||[],isDare:r.fields['_isDare']||false};});
 }
 function bc(t){return t==='Acquisto'?'bA':t==='Vendita'?'bV':'bC';}
 function rendSemplice(recs,bd){
