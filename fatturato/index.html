@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fatturato</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#181b22;
+    --panel-2:#20242e;
+    --border:#2a2f3a;
+    --text:#e9edf5;
+    --muted:#8b93a7;
+    --accent:#4f8cff;
+    --up:#3ecf8e;
+    --down:#ef5d6f;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+  .section-title{font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--muted);margin:0 0 10px;}
+
+  .controls{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:20px;
+  }
+  .dates{display:flex;gap:12px;flex-wrap:wrap;align-items:end;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .field input{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:14px;
+  }
+  .checkfield{display:flex;align-items:center;gap:6px;padding-bottom:9px;}
+  .checkfield label{font-size:13px;color:var(--text);cursor:pointer;}
+  .checkfield input{width:16px;height:16px;cursor:pointer;}
+  .go{
+    background:var(--accent);
+    border:none;
+    color:#fff;
+    padding:9px 20px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .go:disabled{opacity:.5;cursor:default;}
+
+  .cards{display:grid;grid-template-columns:1fr;gap:14px;}
+  @media(min-width:640px){.cards{grid-template-columns:1fr 1fr 1fr;}}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px;
+  }
+  .card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;}
+  .card .value{font-size:26px;font-weight:700;margin-bottom:6px;}
+  .card .period{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .delta{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;padding:3px 9px;border-radius:20px;}
+  .delta.up{color:var(--up);background:rgba(62,207,142,.12);}
+  .delta.down{color:var(--down);background:rgba(239,93,111,.12);}
+  .delta.flat{color:var(--muted);background:rgba(139,147,167,.12);}
+
+  .main-card{grid-column:1/-1;}
+  @media(min-width:640px){.main-card{grid-column:1/-1;}}
+  .main-value{font-size:40px;}
+
+  .msg{color:var(--muted);font-size:13px;margin-top:16px;text-align:center;}
+  .err{color:var(--down);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="section-title">FATTURATO</p>
+
+  <div class="controls">
+    <div class="dates">
+      <div class="field">
+        <label for="df">Dal</label>
+        <input type="date" id="df">
+      </div>
+      <div class="field">
+        <label for="dt">Al</label>
+        <input type="date" id="dt">
+      </div>
+      <div class="checkfield">
+        <input type="checkbox" id="chkIva">
+        <label for="chkIva">Includi IVA</label>
+      </div>
+      <button class="go" id="btnGo">Calcola</button>
+    </div>
+  </div>
+
+  <div class="cards" id="cards" style="display:none;">
+    <div class="card main-card">
+      <div class="label">Fatturato periodo selezionato</div>
+      <div class="value main-value" id="valMain">€ 0</div>
+      <div class="period" id="periodMain"></div>
+    </div>
+    <div class="card">
+      <div class="label">Periodo precedente</div>
+      <div class="value" id="valPrev">€ 0</div>
+      <div class="period" id="periodPrev"></div>
+      <span class="delta" id="deltaPrev"></span>
+    </div>
+    <div class="card">
+      <div class="label">Stesso periodo anno scorso</div>
+      <div class="value" id="valYear">€ 0</div>
+      <div class="period" id="periodYear"></div>
+      <span class="delta" id="deltaYear"></span>
+    </div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+// ===== CONFIGURA QUI =====
+var WORKER_URL = 'https://prima-nota-api.iruiasan123.workers.dev/';
+// Tipi che contano come fatturato (escludiamo Acquisto)
+var TIPI_FATTURATO = ['Vendita','Corrispettivo'];
+// ==========================
+
+function fmtDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fmtEuro(n){
+  return n.toLocaleString('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+}
+function fmtItDate(iso){
+  var p=iso.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+async function fetchFatturato(from,to,includiIva){
+  var r = await fetch(WORKER_URL+'?from='+from+'&to='+to);
+  if(!r.ok){
+    var e = await r.json().catch(function(){return {};});
+    throw new Error(e.error || ('Errore '+r.status));
+  }
+  var all = await r.json();
+  var tot = 0;
+  all.forEach(function(rec){
+    var f = rec.fields || {};
+    if(TIPI_FATTURATO.indexOf(f.Tipo) !== -1){
+      tot += parseFloat(f.AVERE || 0);
+      if(includiIva) tot += parseFloat(f.IVA_DEBITO || 0);
+    }
+  });
+  return tot;
+}
+
+function periodoPrecedente(from,to){
+  var d1 = new Date(from+'T00:00:00');
+  var d2 = new Date(to+'T00:00:00');
+  var giorni = Math.round((d2-d1)/86400000)+1;
+  var prevTo = new Date(d1); prevTo.setDate(prevTo.getDate()-1);
+  var prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate()-(giorni-1));
+  return {from:fmtDate(prevFrom), to:fmtDate(prevTo)};
+}
+
+function periodoAnnoScorso(from,to){
+  var d1 = new Date(from+'T00:00:00');
+  var d2 = new Date(to+'T00:00:00');
+  d1.setFullYear(d1.getFullYear()-1);
+  d2.setFullYear(d2.getFullYear()-1);
+  return {from:fmtDate(d1), to:fmtDate(d2)};
+}
+
+function renderDelta(el, curr, base){
+  if(base === 0 && curr === 0){
+    el.className='delta flat'; el.textContent='— nessun dato nel periodo di confronto'; return;
+  }
+  if(base === 0){
+    el.className='delta up'; el.textContent='▲ nuovo (prima non c\'era fatturato)'; return;
+  }
+  var diff = curr - base;
+  var pct = (diff/base)*100;
+  if(Math.abs(pct) < 0.5){
+    el.className='delta flat'; el.textContent='● stabile ('+fmtEuro(diff)+')';
+  } else if(diff > 0){
+    el.className='delta up'; el.textContent='▲ +'+pct.toFixed(1)+'% ('+fmtEuro(diff)+')';
+  } else {
+    el.className='delta down'; el.textContent='▼ '+pct.toFixed(1)+'% ('+fmtEuro(diff)+')';
+  }
+}
+
+async function calcola(){
+  var from = document.getElementById('df').value;
+  var to = document.getElementById('dt').value;
+  var includiIva = document.getElementById('chkIva').checked;
+  var msg = document.getElementById('msg');
+  var btn = document.getElementById('btnGo');
+  if(!from || !to){ msg.textContent='Seleziona entrambe le date.'; msg.className='msg err'; return; }
+  if(from > to){ msg.textContent='La data "Dal" deve precedere la data "Al".'; msg.className='msg err'; return; }
+
+  btn.disabled = true;
+  msg.className='msg';
+  msg.textContent = 'Calcolo in corso...';
+  document.getElementById('cards').style.display='none';
+
+  try{
+    var pPrec = periodoPrecedente(from,to);
+    var pAnno = periodoAnnoScorso(from,to);
+
+    var results = await Promise.all([
+      fetchFatturato(from,to,includiIva),
+      fetchFatturato(pPrec.from,pPrec.to,includiIva),
+      fetchFatturato(pAnno.from,pAnno.to,includiIva)
+    ]);
+
+    var totMain = results[0], totPrev = results[1], totYear = results[2];
+
+    document.getElementById('valMain').textContent = fmtEuro(totMain);
+    document.getElementById('periodMain').textContent = fmtItDate(from)+' – '+fmtItDate(to);
+
+    document.getElementById('valPrev').textContent = fmtEuro(totPrev);
+    document.getElementById('periodPrev').textContent = fmtItDate(pPrec.from)+' – '+fmtItDate(pPrec.to);
+    renderDelta(document.getElementById('deltaPrev'), totMain, totPrev);
+
+    document.getElementById('valYear').textContent = fmtEuro(totYear);
+    document.getElementById('periodYear').textContent = fmtItDate(pAnno.from)+' – '+fmtItDate(pAnno.to);
+    renderDelta(document.getElementById('deltaYear'), totMain, totYear);
+
+    document.getElementById('cards').style.display='grid';
+    msg.textContent='';
+  }catch(err){
+    msg.className='msg err';
+    msg.textContent='Errore: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btnGo').addEventListener('click', calcola);
+</script>
+</body>
+</html>
