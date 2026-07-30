@@ -128,6 +128,47 @@
   </div>
 
   <div class="msg" id="msg"></div>
+
+  <!-- ===================== BEP ===================== -->
+  <p class="section-title" style="margin-top:36px;">BREAK EVEN POINT (BEP) MENSILE</p>
+
+  <div class="controls">
+    <div class="dates">
+      <div class="field">
+        <label for="bepDf">Dal</label>
+        <input type="date" id="bepDf">
+      </div>
+      <div class="field">
+        <label for="bepDt">Al</label>
+        <input type="date" id="bepDt">
+      </div>
+      <button class="go" id="btnBep">Calcola BEP</button>
+    </div>
+  </div>
+
+  <div class="cards" id="bepCards" style="display:none;">
+    <div class="card">
+      <div class="label">Ricavi periodo</div>
+      <div class="value" id="bepRicavi">€ 0</div>
+      <div class="period" id="bepPeriodo"></div>
+    </div>
+    <div class="card">
+      <div class="label">Costi (acquisti nel periodo)</div>
+      <div class="value" id="bepCosti">€ 0</div>
+      <div class="period">Usati sia come variabili che come fissi — in attesa di categorie costo</div>
+    </div>
+    <div class="card">
+      <div class="label">Margine di contribuzione</div>
+      <div class="value" id="bepMargine">0%</div>
+    </div>
+    <div class="card main-card">
+      <div class="label">Break Even Point — fatturato di pareggio</div>
+      <div class="value main-value" id="bepValore">€ 0</div>
+      <div class="period" id="bepNota"></div>
+    </div>
+  </div>
+
+  <div class="msg" id="bepMsg"></div>
 </div>
 
 <script>
@@ -249,6 +290,87 @@ async function calcola(){
 }
 
 document.getElementById('btnGo').addEventListener('click', calcola);
+
+// ===================== BEP =====================
+async function fetchCostiVariabili(from,to){
+  var r = await fetch(WORKER_URL+'?from='+from+'&to='+to);
+  if(!r.ok){
+    var e = await r.json().catch(function(){return {};});
+    throw new Error(e.error || ('Errore '+r.status));
+  }
+  var all = await r.json();
+  var tot = 0;
+  all.forEach(function(rec){
+    var f = rec.fields || {};
+    if(f.Tipo === 'Acquisto'){
+      tot += parseFloat(f.DARE || 0);
+    }
+  });
+  return tot;
+}
+
+async function calcolaBep(){
+  var from = document.getElementById('bepDf').value;
+  var to = document.getElementById('bepDt').value;
+  var msg = document.getElementById('bepMsg');
+  var btn = document.getElementById('btnBep');
+
+  if(!from || !to){ msg.textContent='Seleziona entrambe le date.'; msg.className='msg err'; return; }
+  if(from > to){ msg.textContent='La data "Dal" deve precedere la data "Al".'; msg.className='msg err'; return; }
+
+  btn.disabled = true;
+  msg.className='msg';
+  msg.textContent = 'Calcolo in corso...';
+  document.getElementById('bepCards').style.display='none';
+
+  try{
+    var results = await Promise.all([
+      fetchFatturato(from,to,false),
+      fetchCostiVariabili(from,to)
+    ]);
+    var ricavi = results[0], costiTotali = results[1];
+
+    // SCHELETRO: per ora non distinguiamo costi fissi/variabili per categoria.
+    // Usiamo l'intero costo acquisti sia come base del margine di contribuzione
+    // sia come numeratore del BEP. Quando avremo le categorie costo (fisso/variabile)
+    // basterà sostituire "costiTotali" con le due somme separate qui sotto.
+    var costiVariabili = costiTotali;
+    var costiFissi = costiTotali;
+
+    document.getElementById('bepRicavi').textContent = fmtEuro(ricavi);
+    document.getElementById('bepPeriodo').textContent = fmtItDate(from)+' – '+fmtItDate(to);
+    document.getElementById('bepCosti').textContent = fmtEuro(costiTotali);
+
+    if(ricavi <= 0){
+      msg.className='msg err';
+      msg.textContent='Nessun ricavo nel periodo: impossibile calcolare il margine di contribuzione.';
+      btn.disabled = false;
+      return;
+    }
+
+    var margine = (ricavi - costiVariabili) / ricavi; // 0..1 (può essere negativo se costi > ricavi)
+    document.getElementById('bepMargine').textContent = (margine*100).toFixed(1)+'%';
+
+    if(margine <= 0){
+      document.getElementById('bepValore').textContent = '—';
+      document.getElementById('bepNota').textContent = 'Margine di contribuzione nullo o negativo: con questi costi il pareggio non è raggiungibile a parità di condizioni.';
+    } else {
+      var bep = costiFissi / margine;
+      document.getElementById('bepValore').textContent = fmtEuro(bep);
+      document.getElementById('bepNota').textContent = 'Fatturato mensile di pareggio, calcolato usando i costi acquisti come base (schema provvisorio, senza distinzione fisso/variabile).';
+    }
+
+    document.getElementById('bepCards').style.display='grid';
+    msg.textContent='';
+  }catch(err){
+    msg.className='msg err';
+    msg.textContent='Errore: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btnBep').addEventListener('click', calcolaBep);
 </script>
 </body>
 </html>
