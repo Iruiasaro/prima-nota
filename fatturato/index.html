@@ -160,7 +160,7 @@ async function fetchFatturato(from,to,includiIva){
     var f = rec.fields || {};
     if(TIPI_FATTURATO.indexOf(f.Tipo) !== -1){
       tot += parseFloat(f.AVERE || 0);
-      if(includiIva) tot += parseFloat(f.IVA_DEBITO || 0);
+      if(includiIva) tot += parseFloat(f.IVA_DEBITO || 0) + parseFloat(f.IVA_CREDITO || 0);
     }
   });
   return tot;
