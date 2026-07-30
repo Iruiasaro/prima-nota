@@ -169,6 +169,80 @@
   </div>
 
   <div class="msg" id="bepMsg"></div>
+
+  <!-- ===================== MARGINE LORDO ===================== -->
+  <p class="section-title" style="margin-top:36px;">MARGINE LORDO</p>
+
+  <div class="controls">
+    <div class="dates">
+      <div class="field">
+        <label for="mlDf">Dal</label>
+        <input type="date" id="mlDf">
+      </div>
+      <div class="field">
+        <label for="mlDt">Al</label>
+        <input type="date" id="mlDt">
+      </div>
+      <button class="go" id="btnMl">Calcola margine</button>
+    </div>
+  </div>
+
+  <div class="cards" id="mlCards" style="display:none;">
+    <div class="card">
+      <div class="label">Ricavi periodo</div>
+      <div class="value" id="mlRicavi">€ 0</div>
+      <div class="period" id="mlPeriodo"></div>
+    </div>
+    <div class="card">
+      <div class="label">Costi diretti (acquisti)</div>
+      <div class="value" id="mlCosti">€ 0</div>
+      <div class="period">Provvisorio: in attesa di categorie costo</div>
+    </div>
+    <div class="card main-card">
+      <div class="label">Margine Lordo</div>
+      <div class="value main-value" id="mlValore">€ 0</div>
+      <div class="period" id="mlPercentuale"></div>
+    </div>
+  </div>
+
+  <div class="msg" id="mlMsg"></div>
+
+  <!-- ===================== EBITDA ===================== -->
+  <p class="section-title" style="margin-top:36px;">EBITDA</p>
+
+  <div class="controls">
+    <div class="dates">
+      <div class="field">
+        <label for="ebDf">Dal</label>
+        <input type="date" id="ebDf">
+      </div>
+      <div class="field">
+        <label for="ebDt">Al</label>
+        <input type="date" id="ebDt">
+      </div>
+      <button class="go" id="btnEb">Calcola EBITDA</button>
+    </div>
+  </div>
+
+  <div class="cards" id="ebCards" style="display:none;">
+    <div class="card">
+      <div class="label">Valore della produzione</div>
+      <div class="value" id="ebRicavi">€ 0</div>
+      <div class="period" id="ebPeriodo"></div>
+    </div>
+    <div class="card">
+      <div class="label">Costi operativi</div>
+      <div class="value" id="ebCosti">€ 0</div>
+      <div class="period">Provvisorio: in attesa di categorie costo</div>
+    </div>
+    <div class="card main-card">
+      <div class="label">EBITDA</div>
+      <div class="value main-value" id="ebValore">€ 0</div>
+      <div class="period" id="ebPercentuale"></div>
+    </div>
+  </div>
+
+  <div class="msg" id="ebMsg"></div>
 </div>
 
 <script>
@@ -371,6 +445,102 @@ async function calcolaBep(){
 }
 
 document.getElementById('btnBep').addEventListener('click', calcolaBep);
+
+// ===================== MARGINE LORDO =====================
+async function calcolaMargine(){
+  var from = document.getElementById('mlDf').value;
+  var to = document.getElementById('mlDt').value;
+  var msg = document.getElementById('mlMsg');
+  var btn = document.getElementById('btnMl');
+
+  if(!from || !to){ msg.textContent='Seleziona entrambe le date.'; msg.className='msg err'; return; }
+  if(from > to){ msg.textContent='La data "Dal" deve precedere la data "Al".'; msg.className='msg err'; return; }
+
+  btn.disabled = true;
+  msg.className='msg';
+  msg.textContent = 'Calcolo in corso...';
+  document.getElementById('mlCards').style.display='none';
+
+  try{
+    var results = await Promise.all([
+      fetchFatturato(from,to,false),
+      fetchCostiVariabili(from,to) // SCHELETRO: per ora totale acquisti come "costi diretti"
+    ]);
+    var ricavi = results[0], costiDiretti = results[1];
+
+    document.getElementById('mlRicavi').textContent = fmtEuro(ricavi);
+    document.getElementById('mlPeriodo').textContent = fmtItDate(from)+' – '+fmtItDate(to);
+    document.getElementById('mlCosti').textContent = fmtEuro(costiDiretti);
+
+    var margine = ricavi - costiDiretti;
+    document.getElementById('mlValore').textContent = fmtEuro(margine);
+
+    if(ricavi > 0){
+      var pct = (margine/ricavi)*100;
+      document.getElementById('mlPercentuale').textContent = pct.toFixed(1)+'% sui ricavi';
+    } else {
+      document.getElementById('mlPercentuale').textContent = 'Nessun ricavo nel periodo';
+    }
+
+    document.getElementById('mlCards').style.display='grid';
+    msg.textContent='';
+  }catch(err){
+    msg.className='msg err';
+    msg.textContent='Errore: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btnMl').addEventListener('click', calcolaMargine);
+
+// ===================== EBITDA =====================
+async function calcolaEbitda(){
+  var from = document.getElementById('ebDf').value;
+  var to = document.getElementById('ebDt').value;
+  var msg = document.getElementById('ebMsg');
+  var btn = document.getElementById('btnEb');
+
+  if(!from || !to){ msg.textContent='Seleziona entrambe le date.'; msg.className='msg err'; return; }
+  if(from > to){ msg.textContent='La data "Dal" deve precedere la data "Al".'; msg.className='msg err'; return; }
+
+  btn.disabled = true;
+  msg.className='msg';
+  msg.textContent = 'Calcolo in corso...';
+  document.getElementById('ebCards').style.display='none';
+
+  try{
+    var results = await Promise.all([
+      fetchFatturato(from,to,false),
+      fetchCostiVariabili(from,to) // SCHELETRO: per ora totale acquisti come "costi operativi"
+    ]);
+    var valoreProduzione = results[0], costiOperativi = results[1];
+
+    document.getElementById('ebRicavi').textContent = fmtEuro(valoreProduzione);
+    document.getElementById('ebPeriodo').textContent = fmtItDate(from)+' – '+fmtItDate(to);
+    document.getElementById('ebCosti').textContent = fmtEuro(costiOperativi);
+
+    var ebitda = valoreProduzione - costiOperativi;
+    document.getElementById('ebValore').textContent = fmtEuro(ebitda);
+
+    if(valoreProduzione > 0){
+      var pct = (ebitda/valoreProduzione)*100;
+      document.getElementById('ebPercentuale').textContent = pct.toFixed(1)+'% sul valore della produzione';
+    } else {
+      document.getElementById('ebPercentuale').textContent = 'Nessun valore della produzione nel periodo';
+    }
+
+    document.getElementById('ebCards').style.display='grid';
+    msg.textContent='';
+  }catch(err){
+    msg.className='msg err';
+    msg.textContent='Errore: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btnEb').addEventListener('click', calcolaEbitda);
 </script>
 </body>
 </html>
